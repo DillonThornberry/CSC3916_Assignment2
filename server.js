@@ -23,7 +23,7 @@ app.use(passport.initialize());
 
 var router = express.Router();
 
-// Middleware to allow only GET, PUT, POST, DELETE methods
+// Middleware to reject unsupported HTTP methods
 app.use((req, res, next) => {
     const allowedMethods = ['GET', 'PUT', 'POST', 'DELETE'];
     if (!allowedMethods.includes(req.method)) {
@@ -100,14 +100,41 @@ router.post('/signin', (req, res) => {
     }
 });
 
-router.get('/test', (req, res) => {
-    console.log(req.body);
-    res = res.status(200);
-    if (req.get('Content-Type')) {
-        res = res.type(req.get('Content-Type'));
-    }
-    res.json({msg: 'GET request received'});
-})
+router.route('/movies')
+    .get((req, res) => {
+        // Implementation here
+        resObj = { status: 200, message: "GET movies", ...getJSONObjectForMovieRequirement(req)};
+        res.json(resObj);
+    })
+    .post((req, res) => {
+        // Implementation here
+        resObj = { status: 200, message: "movie saved", ...getJSONObjectForMovieRequirement(req)};
+        res.json(resObj);
+    })
+    .put(authJwtController.isAuthenticated, (req, res) => {
+        // HTTP PUT Method
+        // Requires JWT authentication.
+        
+        // Returns a JSON object with status, message, headers, query, and env.
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "movie updated";
+        res.json(o);
+    })
+    .delete(authController.isAuthenticated, (req, res) => {
+        // HTTP DELETE Method
+        // Requires Basic authentication.
+        // Returns a JSON object with status, message, headers, query, and env.
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "movie deleted";
+        res.json(o);
+    })
+    .all((req, res) => {
+        // Any other HTTP Method
+        // Returns a message stating that the HTTP method is unsupported.
+        res.status(405).send({ message: 'HTTP method not supported.' });
+    });
 
 
 router.route('/testcollection')

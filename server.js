@@ -23,6 +23,31 @@ app.use(passport.initialize());
 
 var router = express.Router();
 
+// Middleware to allow only GET, PUT, POST, DELETE methods
+app.use((req, res, next) => {
+    const allowedMethods = ['GET', 'PUT', 'POST', 'DELETE'];
+    if (!allowedMethods.includes(req.method)) {
+      return res.status(405).send('Method Not Allowed');
+    }
+    next();
+
+    // Reject !POST to /signup
+    if (req.path == '/signup' && req.method != 'POST') {
+            return res.status(405).send('Method Not Supported for /signup');
+    }
+
+    // Reject !POST to /signin
+    if (req.path == '/signin' && req.method != 'POST') {
+        return res.status(405).send('Method Not Supported for /signin');
+    }
+
+    // Reject base path
+    if (req.path == '/') {
+        return res.status(405).send('Root path not supported');
+    }
+
+  });
+
 function getJSONObjectForMovieRequirement(req) {
     var json = {
         headers: "No headers",
@@ -51,7 +76,8 @@ router.post('/signup', (req, res) => {
         };
 
         db.save(newUser); //no duplicate checking
-        res.json({success: true, msg: 'Successfully created new user.'})
+        var reqInfo = getJSONObjectForMovieRequirement(req);
+        res.json({success: true, msg: 'Successfully created new user.', ...reqInfo})
     }
 });
 
@@ -64,13 +90,25 @@ router.post('/signin', (req, res) => {
         if (req.body.password == user.password) {
             var userToken = { id: user.id, username: user.username };
             var token = jwt.sign(userToken, process.env.SECRET_KEY);
-            res.json ({success: true, token: 'JWT ' + token});
+            reqInfo = getJSONObjectForMovieRequirement(req);
+            res.json ({success: true, token: 'JWT ' + token, ...reqInfo});
         }
         else {
+            
             res.status(401).send({success: false, msg: 'Authentication failed.'});
         }
     }
 });
+
+router.get('/test', (req, res) => {
+    console.log(req.body);
+    res = res.status(200);
+    if (req.get('Content-Type')) {
+        res = res.type(req.get('Content-Type'));
+    }
+    res.json({msg: 'GET request received'});
+})
+
 
 router.route('/testcollection')
     .delete(authController.isAuthenticated, (req, res) => {
